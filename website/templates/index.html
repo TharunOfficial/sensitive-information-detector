@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensitive Info Checker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Sensitive Info Checker</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="file-input" name="file" required />
+        <button type="submit">Upload</button>
+    </form>
+    <div id="result" style="display:none;">
+        <h2>Detected Sensitive Data:</h2>
+        <ul id="sensitive-data-list"></ul>
+        <h2>Blurred Image:</h2>
+        <div id="blurred-image-container"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
