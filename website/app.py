@@ -19,9 +19,9 @@ patterns = {
     'Voter ID (EPIC)': r'\b[A-Z]{3}[0-9]{7}\b',
     'Passport': r'\b[A-Z]{1}[0-9]{7}\b',
     'Driving License': r'\b[A-Z]{2}\d{2}\s\d{4}\s\d{7}\b',
-    'Ration Card': r'\b[A-Z0-9]{10,}\b',
-    'Birth Certificate': r'\b[A-Z0-9]{10,}\b',
-    'Marriage Certificate': r'\b[A-Z0-9]{10,}\b',
+    'Ration Card': r'\b[0-9]{2,4}[A-Z]{2}[0-9]{4,6}\b',  
+    'Birth Certificate': r'\b(?:BC-)?[0-9]{8}\b',  
+    'Marriage Certificate': r'\b(?:MC-)?[A-Z]{3}[0-9]{7}\b',
     'NPR (National Population Register)': r'\b\d{3}\s\d{3}\s\d{3}\s\d{3}\b',
     'ESIC': r'\b\d{10}\b',
     'GSTIN': r'\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}\b',
@@ -33,6 +33,7 @@ patterns = {
     'EPFO Establishment Code': r'\b\d{2}[A-Z]{1}[A-Z0-9]{7}\b',
     'LLPIN': r'\b[A-Z]{3}-\d{4}\b',
     'Professional Tax Registration': r'\b[A-Z0-9]{15}\b',
+    
 }
 
 def preprocess_image_for_ocr(image):
@@ -144,6 +145,8 @@ def upload_file():
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+
+
 
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
