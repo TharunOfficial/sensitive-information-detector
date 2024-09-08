@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory, render_template
 import os
+from PIL import Image, ImageEnhance
 import re
 import cv2
 import pytesseract
@@ -38,7 +39,19 @@ patterns = {
     'Address': r'\bAddress\s*[:\s]*[A-Za-z0-9\s,.-]+\b',
     'Phone': r'\b\d{10}\b|\b\d{3}[-\s]\d{3}[-\s]\d{4}\b'
 }
+def pil_to_cv2(pil_image):
+    open_cv_image = np.array(pil_image)
+    open_cv_image = open_cv_image[:, :, ::-1].copy()  # Convert RGB to BGR
+    return open_cv_image
 
+def enhance_image(image):
+    if isinstance(image, np.ndarray):  # OpenCV image
+        image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+    enhancer = ImageEnhance.Contrast(image)
+    enhanced_image = enhancer.enhance(2)  # Increase contrast
+
+    return pil_to_cv2(enhanced_image)
 
 def preprocess_image_for_ocr(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -55,7 +68,8 @@ def check_sensitive_data(text):
             detected_data.append((id_type, match))
     return detected_data
 def extract_text_from_image(image):
-    text = pytesseract.image_to_string(image)
+    enhance_image1=enhance_image(image)
+    text = pytesseract.image_to_string(enhance_image1)
     return text
 
 def extract_text_from_imagepdf(image):
