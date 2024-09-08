@@ -6,6 +6,7 @@ import pytesseract
 import numpy as np
 from werkzeug.utils import secure_filename
 from pdf2image import convert_from_path
+from docx import Document
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -14,7 +15,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Define patterns for sensitive data
 patterns = {
     'DOB': r'\b(?:0[1-9]|[12][0-9]|3[01])[-/](?:0[1-9]|1[0-2])[-/](?:19|20)\d{2}\b',
-    'Aadhaar': r'\b\d{4}\s\d{4}\s\d{4}\b',
+    'Aadhaar': r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',
     'PAN': r'\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b',
     'Voter ID (EPIC)': r'\b[A-Z]{3}[0-9]{7}\b',
     'Passport': r'\b[A-Z]{1}[0-9]{7}\b',
@@ -33,8 +34,11 @@ patterns = {
     'EPFO Establishment Code': r'\b\d{2}[A-Z]{1}[A-Z0-9]{7}\b',
     'LLPIN': r'\b[A-Z]{3}-\d{4}\b',
     'Professional Tax Registration': r'\b[A-Z0-9]{15}\b',
-    
+    'Name': r'\bName\s*[:\s]*[A-Za-z][A-Za-z\s]*\b',
+    'Address': r'\bAddress\s*[:\s]*[A-Za-z0-9\s,.-]+\b',
+    'Phone': r'\b\d{10}\b|\b\d{3}[-\s]\d{3}[-\s]\d{4}\b'
 }
+
 
 def preprocess_image_for_ocr(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -50,8 +54,11 @@ def check_sensitive_data(text):
         for match in matches:
             detected_data.append((id_type, match))
     return detected_data
-
 def extract_text_from_image(image):
+    text = pytesseract.image_to_string(image)
+    return text
+
+def extract_text_from_imagepdf(image):
     preprocessed_image = preprocess_image_for_ocr(image)
     text = pytesseract.image_to_string(preprocessed_image)
     return text
@@ -66,7 +73,7 @@ def blur_sensitive_text_in_image(image, sensitive_data):
         word = b[0]
 
         for label, value in sensitive_data:
-            if word in value or label:
+            if word in value :
                 cv2.rectangle(image, (x, h-y2), (x2, h-y), (0, 0, 0), -1)
                 
     return image
@@ -78,9 +85,9 @@ def process_pdf_with_images(file_path):
 
     for i, image in enumerate(images):
         open_cv_image = np.array(image)
-        open_cv_image = open_cv_image[:, :, ::-1].copy()  # Convert RGB to BGR format
+        open_cv_image = open_cv_image[:, :, ::-1].copy()
         
-        text = extract_text_from_image(open_cv_image)
+        text = extract_text_from_imagepdf(open_cv_image)
         data = check_sensitive_data(text)
         if data:
             sensitive_data.extend(data)
@@ -91,65 +98,118 @@ def process_pdf_with_images(file_path):
 
     return sensitive_data, image_paths
 
+def extract_text_from_docx(file_path):
+    doc = Document(file_path)
+    text = []
+    for para in doc.paragraphs:
+        text.append(para.text)
+    return '\n'.join(text)
+
+def process_text_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        text = file.read()
+    return text
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-    
-    if file:
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
-
-        sensitive_data = []
-        image_paths = []
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
         
-        try:
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+        
+        if file:
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+
+            sensitive_data = []
+            image_paths = []
+
+            # Handle image files
             if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                image = cv2.imread(file_path)
-                if image is None:
-                    raise FileNotFoundError(f"Error loading image: {file_path}")
-                text = extract_text_from_image(image)
-                sensitive_data = check_sensitive_data(text)
-                if sensitive_data:
-                    blurred_image = blur_sensitive_text_in_image(image, sensitive_data)
-                    blurred_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'blurred_' + filename)
-                    cv2.imwrite(blurred_image_path, blurred_image)
-                    image_paths.append(f'blurred_{filename}')
+                try:
+                    image = cv2.imread(file_path)
+                    if image is None:
+                        raise FileNotFoundError(f"Error loading image: {file_path}")
+                    text = extract_text_from_image(image)
+                    print(text)
+                    sensitive_data = check_sensitive_data(text)
+                    if sensitive_data:
+                        blurred_image = blur_sensitive_text_in_image(image, sensitive_data)
+                        blurred_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'blurred_' + filename)
+                        cv2.imwrite(blurred_image_path, blurred_image)
+                        image_paths.append(f'blurred_' + filename)
+                except Exception as e:
+                    app.logger.error(f"Error processing image: {e}")
+                    return jsonify({'error': str(e)}), 500
+
+            # Handle PDF files
             elif filename.lower().endswith('.pdf'):
-                sensitive_data, image_paths = process_pdf_with_images(file_path)
+                try:
+                    sensitive_data, image_paths = process_pdf_with_images(file_path)
+                except Exception as e:
+                    app.logger.error(f"Error processing PDF: {e}")
+                    return jsonify({'error': str(e)}), 500
+
+            # Handle DOCX files
+            elif filename.lower().endswith('.docx'):
+                try:
+                    text = extract_text_from_docx(file_path)
+                    sensitive_data = check_sensitive_data(text)
+                    if sensitive_data:
+                        result_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'processed_' + filename)
+                        with open(result_file_path, 'w', encoding='utf-8') as result_file:
+                            result_file.write('\n'.join([f"{label}: {"X"*len(value)}" for label, value in sensitive_data]))
+                        image_paths.append(f'processed_' + filename)
+                except Exception as e:
+                    app.logger.error(f"Error processing DOCX: {e}")
+                    return jsonify({'error': str(e)}), 500
+
+            # Handle TXT files
+            elif filename.lower().endswith('.txt'):
+                try:
+                    text = process_text_file(file_path)
+                    sensitive_data = check_sensitive_data(text)
+                    if sensitive_data:
+                        result_file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'processed_' + filename)
+                        with open(result_file_path, 'w', encoding='utf-8') as result_file:
+                            result_file.write('\n'.join([f"{label}: {"X"*len(value)}" for label, value in sensitive_data]))
+                        image_paths.append(f'processed_' + filename)
+                except Exception as e:
+                    app.logger.error(f"Error processing TXT: {e}")
+                    return jsonify({'error': str(e)}), 500
+
             else:
                 return jsonify({'error': 'Unsupported file format'}), 400
 
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            os.remove(file_path)
 
-        os.remove(file_path)
+            result = {'sensitive_data': sensitive_data}
+            if image_paths:
+                result['blurred_image_urls'] = [f'/download/{path}' for path in image_paths]
 
-        result = {'sensitive_data': sensitive_data}
-        if image_paths:
-            result['blurred_image_urls'] = [f'/download/{path}' for path in image_paths]
+            return jsonify(result)
+        
+        else:
+            return jsonify({'error': 'Invalid file'}), 400
 
-        return jsonify(result)
-    else:
-        return jsonify({'error': 'Invalid file'}), 400
+    except Exception as e:
+        app.logger.error(f"Unexpected error: {e}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
 
-
-
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
     app.run(debug=True)
-
