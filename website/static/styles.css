@@ -6,12 +6,13 @@ body {
   background-repeat: no-repeat;
   height: 100vh; 
   margin: 0;
-  background-color: rgb(255 255 255 / 30%);
+  background-color: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
 }
+
 .header-bar {
   background-color: rgba(1, 217, 255, 0.3); 
-  padding: 30px 30px; 
+  padding: 30px;
   border-radius: 20px; 
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   text-align: center; 
@@ -26,9 +27,8 @@ body {
   margin: 0; 
   color: #333333; 
   font-size: 28px; 
-  font: bold;
+  font-weight: bold;
 }
-
 
 #upload-form {
   max-width: 400px;
@@ -38,6 +38,7 @@ body {
   border: 1px solid #ddd;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   border-radius: 20px; 
+  position: relative; /* Ensure proper positioning */
 }
 
 #upload-form input[type="file"] {
@@ -55,10 +56,21 @@ body {
   box-shadow: rgb(201, 46, 70) 0px 10px 0px 0px;
   color: hsl(0, 0%, 100%);
   cursor: pointer;
+  margin: 0 auto;
+ 
 }
 
 #upload-form button[type="submit"]:hover {
   background-color: #d31373;
+}
+
+#upload-form small {
+  position: absolute; 
+  bottom: 16%; 
+  left: 3%; 
+  font-size: 10px; 
+  color: #333; 
+  z-index: 0; 
 }
 
 #result {
@@ -68,7 +80,6 @@ body {
   border: 1px solid #ffffff;
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.1);
   border-radius: 20px; 
-
 }
 
 #result h2 {
@@ -81,21 +92,23 @@ body {
   color: green;
   font-style: italic;
 }
+
 button:active {
   background-color: rgb(255, 56, 86);
-  /*50, 168, 80*/
   box-shadow: rgb(201, 46, 70) 0px 0px 0px 0px;
   transform: translateY(5px);
   transition: 200ms;
 }
+
 .logo {
   position: absolute;
   top: 20px;
   left: 20px; 
-  width: 400px; 
+  max-width: 400px; 
   height: auto; 
   z-index: 2; 
 }
+
 .warning {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   width: 320px;
@@ -107,9 +120,6 @@ button:active {
   background: #F7C752;
   border-radius: 8px;
   box-shadow: 0px 0px 5px -3px #111;
-  
-  
-  /* Positioning */
   position: fixed;
   bottom: 16px;
   right: 16px; /* Align to bottom-right corner */
@@ -153,9 +163,10 @@ button:active {
   justify-content: center;
   z-index: 1000; 
 }
+
 .container {
   width: fit-content;
-  gap: 10px
+  gap: 10px;
 }
 
 .folder {
@@ -188,17 +199,16 @@ button:active {
 
 @keyframes float {
   0% {
-    transform: translatey(0px);
+    transform: translateY(0px);
   }
-
   50% {
-    transform: translatey(-25px);
+    transform: translateY(-25px);
   }
-
   100% {
-    transform: translatey(0px);
+    transform: translateY(0px);
   }
 }
+
 .buttonDownload {
   display: inline-block;
   position: relative;
@@ -211,29 +221,29 @@ button:active {
   text-align: center;
   text-indent: 15px;
   border: none;
- }
- 
- .buttonDownload:hover {
+}
+
+.buttonDownload:hover {
   background-color: #45a21a;
   color: white;
- }
- 
- .buttonDownload:before, .buttonDownload:after {
+}
+
+.buttonDownload:before, .buttonDownload:after {
   content: ' ';
   display: block;
   position: absolute;
   left: 15px;
   top: 52%;
- }
- 
- .buttonDownload:before {
+}
+
+.buttonDownload:before {
   width: 10px;
   height: 2px;
   border-style: solid;
   border-width: 0 2px 2px;
- }
- 
- .buttonDownload:after {
+}
+
+.buttonDownload:after {
   width: 0;
   height: 0;
   margin-left: 3px;
@@ -244,36 +254,96 @@ button:active {
   border-top-color: inherit;
   animation: downloadArrow 1s linear infinite;
   animation-play-state: paused;
- }
- 
- .buttonDownload:hover:before {
+}
+
+.buttonDownload:hover:before {
   border-color: #cdefbd;
- }
- 
- .buttonDownload:hover:after {
+}
+
+.buttonDownload:hover:after {
   border-top-color: #cdefbd;
   animation-play-state: running;
- }
- 
- @keyframes downloadArrow {
-  0% {
-   margin-top: -7px;
-   opacity: 1;
-  }
- 
-  0.001% {
-   margin-top: -15px;
-   opacity: 0.4;
-  }
- 
-  50% {
-   opacity: 1;
-  }
- 
-  100% {
-   margin-top: 0;
-   opacity: 0.4;
-  }
- }
+}
 
+@keyframes downloadArrow {
+  0% {
+    margin-top: -7px;
+    opacity: 1;
+  }
+  0.001% {
+    margin-top: -15px;
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    margin-top: 0;
+    opacity: 0.4;
+  }
+}
+
+/* Media Queries for Responsive Design */
+
+@media (max-width: 768px) {
+  .header-bar {
+    padding: 20px;
+    border-radius: 15px;
+  }
+
+  .header-bar h1 {
+    font-size: 24px;
+  }
+
+  #upload-form {
+    max-width: 90%;
+    margin: 20px auto;
+    padding: 15px;
+  }
+
+  #upload-form button[type="submit"] {
+    padding: 15px 30px;
+    font-size: 14px;
+  }
+
+  .logo {
+    max-width: 200px; /* Adjust logo size for smaller screens */
+    top: 50px;
+    left: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-bar {
+    padding: 15px;
+    border-radius: 10px;
+  }
+
+  .header-bar h1 {
+    font-size: 15px;
+    text-align: right;
+    padding-right: 10px;
+  }
+
+  #upload-form {
+    max-width: 95%;
+    margin: 10px auto;
+    padding: 10px;
+    top:30%;
+  }
+
+  #upload-form button[type="submit"] {
+    padding: 10px 20px;
+    font-size: 12px;
+  }
+
+  .logo {
+    max-width: 200px; 
+    top: 20px;
+    left: 5px;
+  }
+    #result {
+    margin-top: 280px; /* Increase the margin-top for smaller screens */
+  }
+}
 
