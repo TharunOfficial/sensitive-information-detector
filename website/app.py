@@ -13,7 +13,7 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Define patterns for sensitive data
+#Define patterns for sensitive data
 patterns = {
     'DOB': r'\b(?:0[1-9]|[12][0-9]|3[01])[-/](?:0[1-9]|1[0-2])[-/](?:19|20)\d{2}\b',
     'Aadhaar': r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}\b',
@@ -44,10 +44,26 @@ def pil_to_cv2(pil_image):
     open_cv_image = open_cv_image[:, :, ::-1].copy()  # Convert RGB to BGR
     return open_cv_image
 
+# Function to resize the image
+def resize_image(image, scale_percent):
+    width = int(image.shape[1] * scale_percent / 100)
+    height = int(image.shape[0] * scale_percent / 100)
+    dimensions = (width, height)
+    resized_image = cv2.resize(image, dimensions, interpolation=cv2.INTER_LINEAR)
+    return resized_image
+
+# Function to enhance the image
 def enhance_image(image):
     if isinstance(image, np.ndarray):  # OpenCV image
         image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
+    # Resize the image if it's small
+    if image.size[0] < 500 or image.size[1] < 500:  # Adjust threshold as needed
+        print("Image is small. Resizing...")
+        image = pil_to_cv2(resize_image(pil_to_cv2(image), scale_percent=200))
+        image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+    # Enhance contrast
     enhancer = ImageEnhance.Contrast(image)
     enhanced_image = enhancer.enhance(2)  # Increase contrast
 
@@ -73,10 +89,16 @@ def extract_text_from_image(image):
     return text
 
 def extract_text_from_imagepdf(image):
-    preprocessed_image = preprocess_image_for_ocr(image)
+    # Step 1: Enhance the image for better OCR accuracy
+    enhanced_image = enhance_image(image)
+    
+    # Step 2: Preprocess the enhanced image
+    preprocessed_image = preprocess_image_for_ocr(enhanced_image)
+    
+    # Step 3: Perform OCR on the preprocessed image
     text = pytesseract.image_to_string(preprocessed_image)
+    
     return text
-
 def blur_sensitive_text_in_image(image, sensitive_data):
     h, w = image.shape[:2]
     boxes = pytesseract.image_to_boxes(image)
